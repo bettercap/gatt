@@ -26,7 +26,10 @@ func (a *aclData) unmarshal(b []byte) error {
 		return fmt.Errorf("malformed acl packet")
 	}
 
-	*a = aclData{attr: attr, flags: flags, dlen: dlen, b: b[4:]}
+	*a = aclData{attr: attr, flags: flags, dlen: dlen, b: make([]byte, dlen)}
+	if c := copy(a.b, b[4:]); c != int(dlen) {
+		return fmt.Errorf("expected to copy %d bytes, copied %d", dlen, c)
+	}
 	return nil
 }
 
