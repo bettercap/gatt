@@ -3,12 +3,13 @@ package linux
 import (
 	"fmt"
 	"io"
-	"log"
 	"sync"
 
-	"github.com/bettercap/gatt/linux/cmd"
-	"github.com/bettercap/gatt/linux/evt"
-	"github.com/bettercap/gatt/linux/util"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/lightblox/gatt/linux/cmd"
+	"github.com/lightblox/gatt/linux/evt"
+	"github.com/lightblox/gatt/linux/util"
 	"golang.org/x/sys/unix"
 )
 

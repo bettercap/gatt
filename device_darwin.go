@@ -5,11 +5,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
 
-	"github.com/bettercap/gatt/xpc"
+	"github.com/lightblox/gatt/xpc"
 )
 
 const (

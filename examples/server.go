@@ -4,11 +4,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 
-	"github.com/bettercap/gatt"
-	"github.com/bettercap/gatt/examples/option"
-	"github.com/bettercap/gatt/examples/service"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/lightblox/gatt"
+	"github.com/lightblox/gatt/examples/option"
+	"github.com/lightblox/gatt/examples/service"
 )
 
 func main() {

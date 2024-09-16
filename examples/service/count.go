@@ -2,10 +2,11 @@ package service
 
 import (
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/bettercap/gatt"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/lightblox/gatt"
 )
 
 func NewCountService() *gatt.Service {

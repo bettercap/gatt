@@ -6,11 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"strings"
 
-	"github.com/bettercap/gatt/linux"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/lightblox/gatt/linux"
 )
 
 type peripheral struct {

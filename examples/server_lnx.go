@@ -6,12 +6,13 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/bettercap/gatt"
-	"github.com/bettercap/gatt/examples/service"
-	"github.com/bettercap/gatt/linux/cmd"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/lightblox/gatt"
+	"github.com/lightblox/gatt/examples/service"
+	"github.com/lightblox/gatt/linux/cmd"
 )
 
 // server_lnx implements a GATT server.

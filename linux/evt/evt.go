@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bettercap/gatt/linux/util"
+	"github.com/lightblox/gatt/linux/util"
 )
 
 type EventHandler interface {

@@ -2,13 +2,14 @@ package linux
 
 import (
 	"errors"
-	"log"
 	"sync"
 	"syscall"
 	"unsafe"
 
-	"github.com/bettercap/gatt/linux/gioctl"
-	"github.com/bettercap/gatt/linux/socket"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/lightblox/gatt/linux/gioctl"
+	"github.com/lightblox/gatt/linux/socket"
 	"golang.org/x/sys/unix"
 )
 
