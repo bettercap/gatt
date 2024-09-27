@@ -193,7 +193,108 @@ func (c *conn) Close() error {
 // 0x15 LE Credit Based Connection response		0x0005
 // 0x16 LE Flow Control Credit					0x0005
 func (c *conn) handleSignal(a *aclData) error {
-	log.Printf("ignore l2cap signal:[ % X ]", a.b)
-	// FIXME: handle LE signaling channel (CID: 5)
+	if len(a.b) < 5 {
+		return fmt.Errorf("L2CAP signal without packet type")
+	}
+	// First 4 bytes are header - the code is at byte 4
+	switch a.b[4] {
+	case 0x12:
+		return c.handleConnectionParameterUpdateReq(a)
+	default:
+		log.Printf("ignoring unimplemented l2cap signal:[ % X ]", a.b)
+	}
+	// FIXME: handle more LE signaling channel (CID: 5)
 	return nil
+}
+
+func (c *conn) handleConnectionParameterUpdateReq(a *aclData) error {
+	log.Printf("processing connection parameter update")
+	if len(a.b) < 6 {
+		log.Printf("connection parameter update too short to reply, ignoring")
+		return nil
+	}
+	id := a.b[5]
+	res := byte(1) // Bluetooth for "rejected"
+	ok, intMin, intMax, slaveLatency, timeoutMult := c.checkConnectionParams(a)
+	if ok {
+		res = 0 // Bluetooth for "accepted"
+
+		// This has to be done in a goroutine - here, we're on the same thread that is running
+		// the command loop. The send to HCI will wait for an ack to come back, which in turn
+		// will be processed by the command loop - except, if we do this without the goroutine,
+		// it'll never be processed, the send will never complete and we'll block forever.
+		go c.updateConnectionToHCI(intMin, intMax, slaveLatency, timeoutMult)
+	}
+
+	// Reply to the other side
+	b := []byte{
+		0x13, // Code (Connection Param Update Response)
+		id,   // ID
+		0x02, // Length, byte 1
+		0x00, // Length, byte 2
+		res,  // Result
+		0,    // Result (the other byte that's always zero and makes you wonder why they used a 16-bit field)
+	}
+	_, err := c.write(0x05, b)
+	return err
+}
+
+func (c *conn) updateConnectionToHCI(intMin uint16, intMax uint16, slaveLatency uint16, timeoutMult uint16) {
+	// Tell HCI to update
+	u := cmd.LEConnUpdate{
+		c.attr, // Handle
+		intMin,
+		intMax,
+		slaveLatency,
+		timeoutMult,
+		0,
+		0,
+	}
+	if err, _ := c.hci.c.Send(u); err != nil {
+		log.Printf("ERR: updating HCI failed: %v", err)
+	}
+}
+
+func (c *conn) checkConnectionParams(a *aclData) (bool, uint16, uint16, uint16, uint16) {
+	if len(a.b) < 16 {
+		log.Printf("connection parameter update actual length wrong: want 16, got %d", len(a.b))
+		return false, 0, 0, 0, 0
+	}
+	len := uint16(a.b[6]) | (uint16(a.b[7]) << 8)
+	if len != 8 {
+		log.Printf("connection parameter update len field: want 8, got %d", len)
+		return false, 0, 0, 0, 0
+	}
+	intMin := uint16(a.b[8]) | (uint16(a.b[9]) << 8)
+	// Values from page 1070 of the Bluetooth 5.2 spec
+	if intMin < 6 || intMin > 3200 {
+		log.Printf("invalid interval minimum: %d", intMin)
+		return false, 0, 0, 0, 0
+	}
+	intMax := uint16(a.b[10]) | (uint16(a.b[11]) << 8)
+	if intMax < 6 || intMax > 3200 {
+		log.Printf("invalid interval maximum: %d", intMax)
+		return false, 0, 0, 0, 0
+	}
+	if intMax < intMin {
+		log.Printf("interval max (%d) less than min (%d)", intMax, intMin)
+		return false, 0, 0, 0, 0
+	}
+	slaveLatency := uint16(a.b[12]) | (uint16(a.b[13]) << 8)
+	if slaveLatency >= 500 {
+		log.Printf("slave latency too large: %d", slaveLatency)
+		return false, 0, 0, 0, 0
+	}
+	timeoutMult := uint16(a.b[14]) | (uint16(a.b[15]) << 8)
+	if timeoutMult < 10 || timeoutMult > 3200 {
+		log.Printf("invalid timeout multiplier: %d", timeoutMult)
+		return false, 0, 0, 0, 0
+	}
+	maxSlaveLatency := (timeoutMult*10)/(intMax*2) - 1
+	if slaveLatency > maxSlaveLatency {
+		log.Printf("invalid slave latency (%d) for timeout multiplier (%d)", slaveLatency, timeoutMult)
+		return false, 0, 0, 0, 0
+	}
+	log.Printf("accepting, interval min %.2fms, max %.2fms, slave latency %d, supervision timeout %dms", float64(intMin)*1.25, float64(intMax)*1.25, slaveLatency, timeoutMult*10)
+	return true, intMin, intMax, slaveLatency, timeoutMult
 }
